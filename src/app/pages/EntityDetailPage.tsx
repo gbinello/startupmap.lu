@@ -18,6 +18,7 @@ export default function EntityDetailPage() {
   const [rounds, setRounds] = useState<FundingRound[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [portfolio, setPortfolio] = useState<Entity[]>([]);
+  const [investors, setInvestors] = useState<Entity[]>([]);
   const [related, setRelated] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +62,24 @@ export default function EntityDetailPage() {
       setRounds((roundData as any[]) || []);
       setTeam((teamData as TeamMember[]) || []);
       setRelated((relatedData as Entity[]) || []);
+
+      // Load investors for startup pages
+      if (data.type === 'startup') {
+        const { data: riData } = await supabase
+          .from('round_investors')
+          .select('investor_id')
+          .eq('startup_id', data.id);
+
+        if (riData && riData.length > 0) {
+          const investorIds = [...new Set((riData as any[]).map((r: any) => r.investor_id))];
+          const { data: investorsData } = await supabase
+            .from('entities')
+            .select('*, investor_details(*)')
+            .in('id', investorIds)
+            .eq('visible', true);
+          setInvestors((investorsData as Entity[]) || []);
+        }
+      }
 
       // Load investor portfolio via round_investors
       if (data.type === 'investor') {
@@ -236,6 +255,16 @@ export default function EntityDetailPage() {
                       )}
                     </div>
                   ))}
+                </div>
+              </section>
+            )}
+
+            {/* Investors (startups only) */}
+            {investors.length > 0 && (
+              <section className="bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
+                <h2 className="text-sm font-semibold text-[var(--foreground)] mb-4">Investors</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {investors.map(e => <EntityCard key={e.id} entity={e} compact />)}
                 </div>
               </section>
             )}
