@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 const NAV_LINKS = [
   { to: '/directory', label: 'Directory' },
   { to: '/map', label: 'Map' },
+  { to: '/funding', label: 'Funding' },
   { to: '/events', label: 'Events' },
   { to: '/jobs', label: 'Jobs' },
 ];

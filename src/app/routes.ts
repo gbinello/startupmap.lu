@@ -22,6 +22,10 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import('./pages/EntityDetailPage')).default }),
       },
       {
+        path: 'funding',
+        lazy: async () => ({ Component: (await import('./pages/FundingPage')).default }),
+      },
+      {
         path: 'events',
         lazy: async () => ({ Component: (await import('./pages/EventsPage')).default }),
       },
