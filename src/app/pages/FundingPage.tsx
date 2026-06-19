@@ -179,15 +179,15 @@ export default function FundingPage() {
               <ComposedChart data={byYear} barSize={30} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
                 <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={24} allowDecimals={false} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={56} />
                 <Tooltip
-                  formatter={(v: number, name: string) => [name === 'deals' ? `${v} round${v !== 1 ? 's' : ''}` : fmt(v), name === 'deals' ? 'Deal count' : 'Capital raised']}
+                  formatter={(v: number, name: string) => [fmt(v), name === 'cumulative' ? 'Cumulative' : 'Capital raised']}
                   labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
                   contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                   cursor={{ fill: '#f8f8fa' }}
                 />
                 <Bar yAxisId="left" dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
-                <Line yAxisId="right" type="monotone" dataKey="deals" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />
+                <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
