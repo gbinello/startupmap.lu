@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid,
 } from 'recharts';
 import { TrendingUp, Hash, BarChart2, Users } from 'lucide-react';
@@ -176,17 +176,19 @@ export default function FundingPage() {
           <div className="lg:col-span-2 bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
             <h2 className="text-sm font-semibold text-[var(--foreground)] mb-5">Funding by year</h2>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byYear} barSize={30} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <ComposedChart data={byYear} barSize={30} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
                 <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                <YAxis yAxisId="left" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={24} allowDecimals={false} />
                 <Tooltip
-                  formatter={(v: number) => [fmt(v), 'Capital raised']}
+                  formatter={(v: number, name: string) => [name === 'deals' ? `${v} round${v !== 1 ? 's' : ''}` : fmt(v), name === 'deals' ? 'Deal count' : 'Capital raised']}
                   labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
                   contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                   cursor={{ fill: '#f8f8fa' }}
                 />
-                <Bar dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Bar yAxisId="left" dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="deals" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
 
@@ -213,10 +215,13 @@ export default function FundingPage() {
         {selectedYear && (() => {
           const years = [...new Set(allRounds.map(r => r.date?.slice(0, 4)).filter(Boolean))].sort() as string[];
           const yearRounds = allRounds.filter(r => r.date?.startsWith(selectedYear));
+          let runningTotal = 0;
           const monthlyData = MONTHS.map((month, i) => {
             const m = String(i + 1).padStart(2, '0');
             const monthRounds = yearRounds.filter(r => r.date?.slice(5, 7) === m);
-            return { month, amount: monthRounds.reduce((s, r) => s + (r.amount || 0), 0), deals: monthRounds.length };
+            const amount = monthRounds.reduce((s, r) => s + (r.amount || 0), 0);
+            runningTotal += amount;
+            return { month, amount, deals: monthRounds.length, cumulative: runningTotal > 0 ? runningTotal : null };
           });
           const yearTotal = yearRounds.reduce((s, r) => s + (r.amount || 0), 0);
 
@@ -247,18 +252,20 @@ export default function FundingPage() {
               </div>
               <div style={{ width: '100%', height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} barSize={20} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                  <ComposedChart data={monthlyData} barSize={20} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                    <YAxis yAxisId="left" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                    <YAxis yAxisId="right" orientation="right" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={56} />
                     <Tooltip
-                      formatter={(v: number) => [fmt(v), 'Raised']}
+                      formatter={(v: number, name: string) => [fmt(v), name === 'cumulative' ? 'Cumulative' : 'Raised']}
                       labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
                       contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                       cursor={{ fill: '#f8f8fa' }}
                     />
-                    <Bar dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Bar yAxisId="left" dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
+                    <Line yAxisId="right" type="stepAfter" dataKey="cumulative" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 0 }} connectNulls={true} />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
               {yearRounds.length > 0 && (
