@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
+  ComposedChart, Line, CartesianGrid,
 } from 'recharts';
 import { TrendingUp, Hash, BarChart2, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -62,7 +63,12 @@ export default function FundingPage() {
       const cur = yearMap.get(year) ?? { amount: 0, deals: 0 };
       yearMap.set(year, { amount: cur.amount + (r.amount || 0), deals: cur.deals + 1 });
     }
-    setByYear([...yearMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([year, v]) => ({ year, ...v })));
+    const sortedYears = [...yearMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    let cumulative = 0;
+    setByYear(sortedYears.map(([year, v]) => {
+      cumulative += v.amount;
+      return { year, ...v, cumulative };
+    }));
 
     // By stage
     const stageMap = new Map<string, { value: number; deals: number }>();
@@ -193,6 +199,37 @@ export default function FundingPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+
+        {/* Cumulative tracker */}
+        <div className="bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--foreground)]">Yearly tracker</h2>
+              <p className="text-xs text-[var(--foreground-muted)] mt-0.5">Annual capital raised (bars) vs. cumulative total (line)</p>
+            </div>
+            <span className="text-xs text-[var(--foreground-muted)] bg-[var(--surface)] px-2 py-1 rounded-[var(--radius)]">
+              {byYear[0]?.year} – {byYear[byYear.length - 1]?.year}
+            </span>
+          </div>
+          <div style={{ width: '100%', height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={byYear} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={56} />
+                <Tooltip
+                  formatter={(value: number, name: string) => [fmt(value), name === 'amount' ? 'Raised this year' : 'Cumulative total']}
+                  labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
+                  contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                  cursor={{ fill: '#f8f8fa' }}
+                />
+                <Bar yAxisId="left" dataKey="amount" fill="#6b5ce7" opacity={0.25} radius={[4, 4, 0, 0]} barSize={32} />
+                <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#6b5ce7" strokeWidth={2.5} dot={{ fill: '#6b5ce7', r: 4, strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
