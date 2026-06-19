@@ -3,8 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  ComposedChart, Line, CartesianGrid,
+  PieChart, Pie, Cell, Legend, CartesianGrid,
 } from 'recharts';
 import { TrendingUp, Hash, BarChart2, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -20,7 +19,9 @@ function fmt(n: number): string {
 const COLORS = ['#6b5ce7', '#a78bfa', '#38bdf8', '#34d399', '#fb923c', '#f43f5e'];
 const STAGE_ORDER = ['Pre-seed', 'Seed', 'Series A', 'Series B', 'Series C', 'Growth'];
 
-interface YearData { year: string; amount: number; deals: number }
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+interface YearData { year: string; amount: number; deals: number; cumulative: number }
 interface StageData { name: string; value: number; deals: number }
 interface SectorData { sector: string; amount: number; deals: number }
 interface InvestorRow { entity: Entity; deals: number; amount: number }
@@ -36,6 +37,8 @@ export default function FundingPage() {
   const [topStartups, setTopStartups] = useState<StartupRow[]>([]);
   const [activeInvestors, setActiveInvestors] = useState<InvestorRow[]>([]);
   const [recentRounds, setRecentRounds] = useState<RecentRound[]>([]);
+  const [allRounds, setAllRounds] = useState<RecentRound[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>('');
 
   useEffect(() => { loadData(); }, []);
 
@@ -124,9 +127,13 @@ export default function FundingPage() {
     );
 
     // Recent rounds
-    setRecentRounds(
-      (rounds as any[]).slice(0, 6).map((r: any) => ({ ...r, startup: entityMap.get(r.startup_id) }))
-    );
+    const enriched = (rounds as any[]).map((r: any) => ({ ...r, startup: entityMap.get(r.startup_id) }));
+    setRecentRounds(enriched.slice(0, 6));
+    setAllRounds(enriched);
+
+    // Default selected year = most recent year with rounds
+    const years = [...new Set((rounds as any[]).map((r: any) => r.date?.slice(0, 4)).filter(Boolean))].sort();
+    setSelectedYear(years[years.length - 1] ?? '');
 
     setLoading(false);
   }
@@ -202,36 +209,80 @@ export default function FundingPage() {
           </div>
         </div>
 
-        {/* Cumulative tracker */}
-        <div className="bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--foreground)]">Yearly tracker</h2>
-              <p className="text-xs text-[var(--foreground-muted)] mt-0.5">Annual capital raised (bars) vs. cumulative total (line)</p>
+        {/* Single-year tracker */}
+        {selectedYear && (() => {
+          const years = [...new Set(allRounds.map(r => r.date?.slice(0, 4)).filter(Boolean))].sort() as string[];
+          const yearRounds = allRounds.filter(r => r.date?.startsWith(selectedYear));
+          const monthlyData = MONTHS.map((month, i) => {
+            const m = String(i + 1).padStart(2, '0');
+            const monthRounds = yearRounds.filter(r => r.date?.slice(5, 7) === m);
+            return { month, amount: monthRounds.reduce((s, r) => s + (r.amount || 0), 0), deals: monthRounds.length };
+          });
+          const yearTotal = yearRounds.reduce((s, r) => s + (r.amount || 0), 0);
+
+          return (
+            <div className="bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h2 className="text-sm font-semibold text-[var(--foreground)]">Year tracker</h2>
+                  <p className="text-xs text-[var(--foreground-muted)] mt-0.5">
+                    {yearRounds.length} round{yearRounds.length !== 1 ? 's' : ''} · {fmt(yearTotal)} raised
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  {years.map(y => (
+                    <button
+                      key={y}
+                      onClick={() => setSelectedYear(y)}
+                      className={`px-2.5 py-1 text-xs rounded-[var(--radius)] transition-colors ${
+                        y === selectedYear
+                          ? 'bg-[var(--primary)] text-white font-medium'
+                          : 'bg-[var(--surface)] text-[var(--foreground-secondary)] hover:bg-[var(--border)]'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ width: '100%', height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyData} barSize={20} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
+                    <Tooltip
+                      formatter={(v: number) => [fmt(v), 'Raised']}
+                      labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
+                      contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                      cursor={{ fill: '#f8f8fa' }}
+                    />
+                    <Bar dataKey="amount" fill="#6b5ce7" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {yearRounds.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-2">
+                  {yearRounds.map(r => (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-[var(--radius)] bg-[var(--primary-light)] text-[var(--primary)] text-xs font-semibold flex items-center justify-center shrink-0">
+                        {r.startup ? getInitials(r.startup.name) : '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {r.startup
+                          ? <Link to={`/entity/${r.startup.slug || r.startup.id}`} className="text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">{r.startup.name}</Link>
+                          : <span className="text-sm font-medium text-[var(--foreground)]">Unknown</span>
+                        }
+                        <p className="text-xs text-[var(--foreground-muted)]">{r.round_type} · {r.date?.slice(0, 7)}</p>
+                      </div>
+                      {r.amount && <span className="text-sm font-semibold text-[var(--foreground)] shrink-0">{fmt(r.amount)}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <span className="text-xs text-[var(--foreground-muted)] bg-[var(--surface)] px-2 py-1 rounded-[var(--radius)]">
-              {byYear[0]?.year} – {byYear[byYear.length - 1]?.year}
-            </span>
-          </div>
-          <div style={{ width: '100%', height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={byYear} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={52} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={fmt} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={56} />
-                <Tooltip
-                  formatter={(value: number, name: string) => [fmt(value), name === 'amount' ? 'Raised this year' : 'Cumulative total']}
-                  labelStyle={{ fontSize: 12, fontWeight: 600, color: '#0f0f10' }}
-                  contentStyle={{ fontSize: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-                  cursor={{ fill: '#f8f8fa' }}
-                />
-                <Bar yAxisId="left" dataKey="amount" fill="#6b5ce7" opacity={0.25} radius={[4, 4, 0, 0]} barSize={32} />
-                <Line yAxisId="right" type="monotone" dataKey="cumulative" stroke="#6b5ce7" strokeWidth={2.5} dot={{ fill: '#6b5ce7', r: 4, strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Sector bars */}
         <div className="bg-white border border-[var(--border)] rounded-[var(--radius-xl)] p-6">
