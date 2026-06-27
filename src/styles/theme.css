@@ -1,7 +1,7 @@
 :root {
-  --background: #ffffff;
-  --surface: #f8f8fa;
-  --surface-hover: #f3f3f6;
+  --background: #f0f1f3;
+  --surface: #f4f5f7;
+  --surface-hover: #eceef1;
   --foreground: #0f0f10;
   --foreground-secondary: #6b7280;
   --foreground-muted: #9ca3af;
@@ -81,6 +81,14 @@
 
   button {
     font-family: inherit;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   @keyframes fade-in {

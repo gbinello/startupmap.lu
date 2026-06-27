@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--border)] bg-white mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="text-sm font-semibold">
               startupmap<span className="text-[var(--primary)]">.lu</span>
@@ -38,7 +38,28 @@ export default function Footer() {
               {[
                 { to: '/events', label: 'Events' },
                 { to: '/jobs', label: 'Open jobs' },
+                { to: '/funding', label: 'Funding data' },
+                { to: '/about', label: 'About the ecosystem' },
                 { to: '/submit', label: 'Submit a listing' },
+              ].map(l => (
+                <li key={l.to}>
+                  <Link to={l.to} className="text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-[var(--foreground)] mb-3">Sectors</p>
+            <ul className="space-y-2">
+              {[
+                { to: '/sector/fintech', label: 'Fintech' },
+                { to: '/sector/ai-ml', label: 'AI & ML' },
+                { to: '/sector/space-tech', label: 'Space Tech' },
+                { to: '/sector/logistics', label: 'Logistics' },
+                { to: '/sector/healthtech', label: 'Healthtech' },
+                { to: '/sector/cleantech', label: 'Cleantech' },
               ].map(l => (
                 <li key={l.to}>
                   <Link to={l.to} className="text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">

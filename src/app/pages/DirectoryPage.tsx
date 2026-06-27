@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router';
+import { useSearchParams, Link, useLocation } from 'react-router';
 import { Helmet } from 'react-helmet-async';
-import { Search, SlidersHorizontal, X, Map, List } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Map, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import EntityCard from '../components/EntityCard';
-import { Badge } from '../components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import type { Entity, EntityType } from '@/lib/supabase';
 import { ENTITY_TYPE_LABELS, SECTORS, STAGE_LABELS, LU_CITIES } from '@/lib/utils';
@@ -17,7 +16,22 @@ const TYPE_TABS = [
   { value: 'service_provider', label: 'Service Providers' },
 ];
 
+const TYPE_H1: Record<string, string> = {
+  startup: 'Luxembourg Startups',
+  investor: 'Luxembourg Investors & VCs',
+  accelerator: 'Luxembourg Accelerators',
+  service_provider: 'Luxembourg Service Providers',
+};
+
+const TYPE_DESC: Record<string, string> = {
+  startup: 'Browse startups building in Luxembourg. Filter by sector, stage and city.',
+  investor: 'Luxembourg-based VCs, angel investors and family offices. Filter by stage and sector focus.',
+  accelerator: 'Accelerators and incubators supporting startups in Luxembourg.',
+  service_provider: 'Law firms, accountants, recruiters and other service providers for Luxembourg startups.',
+};
+
 export default function DirectoryPage() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,12 +39,11 @@ export default function DirectoryPage() {
 
   const typeParam = searchParams.get('type') || '';
   const queryParam = searchParams.get('q') || '';
-  const sectorParam = searchParams.get('sector') || '';
-  const stageParam = searchParams.get('stage') || '';
-  const cityParam = searchParams.get('city') || '';
+  const sectorParams = searchParams.getAll('sector');
+  const stageParams = searchParams.getAll('stage');
+  const cityParams = searchParams.getAll('city');
 
   const [localQuery, setLocalQuery] = useState(queryParam);
-
   useEffect(() => { setLocalQuery(queryParam); }, [queryParam]);
 
   const fetchEntities = useCallback(async () => {
@@ -44,17 +57,20 @@ export default function DirectoryPage() {
 
     if (typeParam) q = q.eq('type', typeParam as EntityType);
     if (queryParam) q = q.ilike('name', `%${queryParam}%`);
-    if (cityParam) q = q.ilike('city', `%${cityParam}%`);
 
     const { data } = await q;
     let results = (data as Entity[]) || [];
 
-    if (sectorParam) results = results.filter(e => e.startup_details?.sector === sectorParam);
-    if (stageParam) results = results.filter(e => e.startup_details?.stage === stageParam);
+    if (sectorParams.length > 0)
+      results = results.filter(e => sectorParams.includes(e.startup_details?.sector ?? ''));
+    if (stageParams.length > 0)
+      results = results.filter(e => stageParams.includes(e.startup_details?.stage ?? ''));
+    if (cityParams.length > 0)
+      results = results.filter(e => cityParams.some(c => e.city?.toLowerCase().includes(c.toLowerCase())));
 
     setEntities(results);
     setLoading(false);
-  }, [typeParam, queryParam, sectorParam, stageParam, cityParam]);
+  }, [typeParam, queryParam, sectorParams.join(','), stageParams.join(','), cityParams.join(',')]);
 
   useEffect(() => { fetchEntities(); }, [fetchEntities]);
 
@@ -64,18 +80,78 @@ export default function DirectoryPage() {
     setSearchParams(next);
   };
 
-  const clearFilters = () => setSearchParams(new URLSearchParams());
+  const toggleParam = (key: string, value: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      const current = next.getAll(key);
+      next.delete(key);
+      if (current.includes(value)) {
+        current.filter(v => v !== value).forEach(v => next.append(key, v));
+      } else {
+        [...current, value].forEach(v => next.append(key, v));
+      }
+      return next;
+    });
+  };
 
-  const activeFilters = [sectorParam, stageParam, cityParam].filter(Boolean).length;
+  const clearFilters = () => {
+    const next = new URLSearchParams();
+    if (typeParam) next.set('type', typeParam);
+    if (queryParam) next.set('q', queryParam);
+    setSearchParams(next);
+  };
+
+  const activeFilters = sectorParams.length + stageParams.length + cityParams.length;
+
+  const filterContent = (
+    <>
+      <FilterGroup
+        label="Sector"
+        options={SECTORS}
+        selected={sectorParams}
+        onToggle={v => toggleParam('sector', v)}
+      />
+      {(!typeParam || typeParam === 'startup') && (
+        <FilterGroup
+          label="Stage"
+          options={Object.keys(STAGE_LABELS)}
+          labelFn={v => STAGE_LABELS[v]}
+          selected={stageParams}
+          onToggle={v => toggleParam('stage', v)}
+        />
+      )}
+      <FilterGroup
+        label="City"
+        options={LU_CITIES}
+        selected={cityParams}
+        onToggle={v => toggleParam('city', v)}
+      />
+    </>
+  );
 
   return (
     <>
       <Helmet>
-        <title>Directory — startupmap.lu</title>
+        <title>{typeParam ? `${TYPE_H1[typeParam] ?? 'Directory'} | startupmap.lu` : 'Luxembourg Startup Directory — Startups, Investors & Accelerators | startupmap.lu'}</title>
+        <meta name="description" content={TYPE_DESC[typeParam] ?? 'Browse Luxembourg startups, investors, accelerators and service providers. Filter by sector, stage and city.'} />
+        <link rel="canonical" href={`https://startupmap.lu${location.pathname}${typeParam ? `?type=${typeParam}` : ''}`} />
+        <meta property="og:title" content={typeParam ? `${TYPE_H1[typeParam] ?? 'Directory'} | startupmap.lu` : 'Luxembourg Startup Directory | startupmap.lu'} />
+        <meta property="og:description" content={TYPE_DESC[typeParam] ?? 'Browse Luxembourg startups, investors, accelerators and service providers.'} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`https://startupmap.lu${location.pathname}${typeParam ? `?type=${typeParam}` : ''}`} />
+        <meta property="og:site_name" content="startupmap.lu" />
+        <meta name="twitter:card" content="summary" />
       </Helmet>
 
       <div className="border-b border-[var(--border)] bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-xl font-semibold text-[var(--foreground)] pt-5 pb-1">
+            {typeParam ? (TYPE_H1[typeParam] ?? 'Directory') : 'Luxembourg Startup Directory'}
+          </h1>
+          <p className="text-sm text-[var(--foreground-secondary)] pb-2">
+            {TYPE_DESC[typeParam] ?? 'Browse Luxembourg startups, investors, accelerators and service providers. Filter by sector, stage and city.'}
+          </p>
+
           {/* Type tabs */}
           <div className="flex items-center gap-0.5 pt-4 overflow-x-auto">
             {TYPE_TABS.map(tab => (
@@ -112,28 +188,28 @@ export default function DirectoryPage() {
               variant="outline"
               size="sm"
               onClick={() => setFiltersOpen(!filtersOpen)}
-              className="gap-1.5"
+              className="gap-1.5 shrink-0"
             >
               <SlidersHorizontal size={13} />
               Filters
               {activeFilters > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[var(--primary)] text-white text-[10px] flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-[var(--primary)] text-white text-[10px] flex items-center justify-center tabular-nums">
                   {activeFilters}
                 </span>
               )}
             </Button>
 
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="shrink-0">
               <Link to="/map" className="gap-1.5">
                 <Map size={13} />
-                Map
+                <span className="hidden sm:inline">Map</span>
               </Link>
             </Button>
 
             {activeFilters > 0 && (
-              <button onClick={clearFilters} className="text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] flex items-center gap-1">
+              <button onClick={clearFilters} className="shrink-0 text-xs text-[var(--foreground-secondary)] hover:text-[var(--foreground)] flex items-center gap-1">
                 <X size={12} />
-                Clear
+                <span className="hidden sm:inline">Clear</span>
               </button>
             )}
           </div>
@@ -141,53 +217,61 @@ export default function DirectoryPage() {
           {/* Active filter chips */}
           {activeFilters > 0 && (
             <div className="flex flex-wrap gap-1.5 pb-3">
-              {sectorParam && (
-                <button onClick={() => setParam('sector', '')} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
-                  {sectorParam} <X size={10} />
+              {sectorParams.map(s => (
+                <button key={s} onClick={() => toggleParam('sector', s)} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
+                  {s} <X size={10} />
                 </button>
-              )}
-              {stageParam && (
-                <button onClick={() => setParam('stage', '')} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
-                  {STAGE_LABELS[stageParam] ?? stageParam} <X size={10} />
+              ))}
+              {stageParams.map(s => (
+                <button key={s} onClick={() => toggleParam('stage', s)} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
+                  {STAGE_LABELS[s] ?? s} <X size={10} />
                 </button>
-              )}
-              {cityParam && (
-                <button onClick={() => setParam('city', '')} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
-                  {cityParam} <X size={10} />
+              ))}
+              {cityParams.map(c => (
+                <button key={c} onClick={() => toggleParam('city', c)} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--primary-light)] text-[var(--primary)] rounded-full hover:bg-[var(--primary-light-hover)]">
+                  {c} <X size={10} />
                 </button>
-              )}
+              ))}
             </div>
           )}
         </div>
       </div>
 
+      {/* Mobile filter overlay */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white sm:hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+            <p className="text-sm font-semibold text-[var(--foreground)]">Filters</p>
+            <button
+              onClick={() => setFiltersOpen(false)}
+              className="size-9 flex items-center justify-center rounded-full hover:bg-[var(--surface)] transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+            {filterContent}
+          </div>
+          <div className="px-4 py-3 border-t border-[var(--border)] bg-white flex gap-2">
+            {activeFilters > 0 && (
+              <Button variant="outline" className="shrink-0" onClick={clearFilters}>
+                Clear {activeFilters}
+              </Button>
+            )}
+            <Button className="flex-1" onClick={() => setFiltersOpen(false)}>
+              Show {loading ? '…' : `${entities.length} result${entities.length === 1 ? '' : 's'}`}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
-          {/* Filters sidebar */}
+          {/* Filters sidebar — desktop only */}
           {filtersOpen && (
-            <aside className="w-52 shrink-0 animate-fade-in">
+            <aside className="hidden sm:block w-52 shrink-0">
               <div className="sticky top-20 space-y-5">
-                <FilterGroup
-                  label="Sector"
-                  options={SECTORS}
-                  selected={sectorParam}
-                  onSelect={v => setParam('sector', v)}
-                />
-                {(!typeParam || typeParam === 'startup') && (
-                  <FilterGroup
-                    label="Stage"
-                    options={Object.keys(STAGE_LABELS)}
-                    labelFn={v => STAGE_LABELS[v]}
-                    selected={stageParam}
-                    onSelect={v => setParam('stage', v)}
-                  />
-                )}
-                <FilterGroup
-                  label="City"
-                  options={LU_CITIES}
-                  selected={cityParam}
-                  onSelect={v => setParam('city', v)}
-                />
+                {filterContent}
               </div>
             </aside>
           )}
@@ -226,31 +310,41 @@ export default function DirectoryPage() {
 }
 
 function FilterGroup({
-  label, options, selected, onSelect, labelFn,
+  label, options, selected, onToggle, labelFn,
 }: {
   label: string;
   options: string[];
-  selected: string;
-  onSelect: (v: string) => void;
+  selected: string[];
+  onToggle: (v: string) => void;
   labelFn?: (v: string) => string;
 }) {
   return (
     <div>
       <p className="text-xs font-medium text-[var(--foreground)] mb-2">{label}</p>
       <div className="space-y-0.5">
-        {options.map(opt => (
-          <button
-            key={opt}
-            onClick={() => onSelect(selected === opt ? '' : opt)}
-            className={`w-full text-left text-xs px-2 py-1.5 rounded-[var(--radius-sm)] transition-colors ${
-              selected === opt
-                ? 'bg-[var(--primary-light)] text-[var(--primary)] font-medium'
-                : 'text-[var(--foreground-secondary)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            {labelFn ? labelFn(opt) : opt}
-          </button>
-        ))}
+        {options.map(opt => {
+          const isSelected = selected.includes(opt);
+          return (
+            <button
+              key={opt}
+              onClick={() => onToggle(opt)}
+              className={`w-full text-left text-xs px-2 py-1.5 rounded-[var(--radius-sm)] transition-colors flex items-center gap-2 ${
+                isSelected
+                  ? 'bg-[var(--primary-light)] text-[var(--primary)] font-medium'
+                  : 'text-[var(--foreground-secondary)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <span className={`size-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                isSelected
+                  ? 'bg-[var(--primary)] border-[var(--primary)]'
+                  : 'border-[var(--border-strong)]'
+              }`}>
+                {isSelected && <Check size={9} className="text-white" strokeWidth={3} />}
+              </span>
+              {labelFn ? labelFn(opt) : opt}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

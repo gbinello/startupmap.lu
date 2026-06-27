@@ -43,7 +43,16 @@ export default function EventsPage() {
 
   return (
     <>
-      <Helmet><title>Events — startupmap.lu</title></Helmet>
+      <Helmet>
+        <title>Startup Events in Luxembourg — Conferences, Meetups & Hackathons | startupmap.lu</title>
+        <meta name="description" content="Upcoming startup conferences, meetups, hackathons, workshops and networking events in Luxembourg. Stay connected with the local tech community." />
+        <meta property="og:title" content="Startup Events in Luxembourg | startupmap.lu" />
+        <meta property="og:description" content="Upcoming startup conferences, meetups, hackathons and networking events in Luxembourg." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://startupmap.lu/events" />
+        <meta property="og:site_name" content="startupmap.lu" />
+        <meta name="twitter:card" content="summary" />
+      </Helmet>
 
       <div className="border-b border-[var(--border)] bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-5">

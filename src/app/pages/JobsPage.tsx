@@ -36,7 +36,16 @@ export default function JobsPage() {
 
   return (
     <>
-      <Helmet><title>Jobs — startupmap.lu</title></Helmet>
+      <Helmet>
+        <title>Jobs at Luxembourg Startups & Scaleups | startupmap.lu</title>
+        <meta name="description" content="Browse open positions at Luxembourg startups and scaleups. Find full-time, part-time, remote and hybrid roles across tech, fintech, AI and more." />
+        <meta property="og:title" content="Jobs at Luxembourg Startups | startupmap.lu" />
+        <meta property="og:description" content="Browse open positions at Luxembourg startups and scaleups. Remote, hybrid and on-site roles." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://startupmap.lu/jobs" />
+        <meta property="og:site_name" content="startupmap.lu" />
+        <meta name="twitter:card" content="summary" />
+      </Helmet>
 
       <div className="border-b border-[var(--border)] bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-5">

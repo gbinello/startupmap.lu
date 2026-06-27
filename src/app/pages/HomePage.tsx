@@ -73,10 +73,32 @@ export default function HomePage() {
     <>
       <Helmet>
         <title>startupmap.lu — Luxembourg's startup ecosystem</title>
+        <meta name="description" content="Discover startups, investors, accelerators, service providers, events and open jobs across the Grand Duchy of Luxembourg." />
+        <meta property="og:title" content="startupmap.lu — Luxembourg's startup ecosystem" />
+        <meta property="og:description" content="Discover startups, investors, accelerators, service providers, events and open jobs across the Grand Duchy of Luxembourg." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://startupmap.lu/" />
+        <meta property="og:image" content="https://startupmap.lu/og-image.png" />
+        <meta property="og:site_name" content="startupmap.lu" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="startupmap.lu — Luxembourg's startup ecosystem" />
+        <meta name="twitter:description" content="Discover startups, investors, accelerators, service providers, events and open jobs across the Grand Duchy of Luxembourg." />
+        <script type="application/ld+json">{JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'startupmap.lu',
+          url: 'https://startupmap.lu',
+          description: "Luxembourg's startup ecosystem directory — startups, investors, accelerators, events and jobs.",
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: { '@type': 'EntryPoint', urlTemplate: 'https://startupmap.lu/directory?q={search_term_string}' },
+            'query-input': 'required name=search_term_string',
+          },
+        })}</script>
       </Helmet>
 
       {/* Hero */}
-      <section className="border-b border-[var(--border)] bg-white">
+      <section className="border-b border-[var(--border)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-1.5 bg-[var(--primary-light)] text-[var(--primary)] rounded-full px-3 py-1 text-xs font-medium mb-6">
             <MapPin size={12} />
@@ -98,7 +120,7 @@ export default function HomePage() {
                   value={query}
                   onChange={e => { setQuery(e.target.value); setShowDropdown(e.target.value.trim().length >= 2); }}
                   placeholder="Search startups, investors, accelerators…"
-                  className="w-full h-11 pl-10 pr-32 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
+                  className="w-full h-11 pl-10 pr-32 rounded-[var(--radius-lg)] border border-[var(--border-strong)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent"
                 />
                 <button
                   type="submit"
@@ -152,7 +174,7 @@ export default function HomePage() {
                   <Icon size={14} />
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-[var(--foreground)] leading-none">
+                  <p className="text-lg font-semibold text-[var(--foreground)] leading-none tabular-nums">
                     {(counts as any)[key] || '—'}
                   </p>
                   <p className="text-xs text-[var(--foreground-secondary)] mt-0.5">{label}</p>
@@ -174,7 +196,7 @@ export default function HomePage() {
             <Link
               key={item.to}
               to={item.to}
-              className="flex items-start gap-3 p-4 bg-white border border-[var(--border)] rounded-[var(--radius-lg)] hover:border-[var(--border-strong)] hover:shadow-sm transition-all group"
+              className="flex items-start gap-3 p-4 bg-white border border-[var(--border)] rounded-[24px] hover:border-[var(--border-strong)] hover:shadow-sm transition-[border-color,box-shadow] group"
             >
               <div className="w-8 h-8 rounded-[var(--radius)] bg-[var(--primary-light)] text-[var(--primary)] flex items-center justify-center shrink-0">
                 <item.icon size={15} />

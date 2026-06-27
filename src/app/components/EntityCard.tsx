@@ -1,8 +1,30 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { Building2, MapPin, TrendingUp, Users, Briefcase, Target } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { cn, formatCurrency, getInitials, ENTITY_TYPE_LABELS, STAGE_LABELS } from '@/lib/utils';
 import type { Entity } from '@/lib/supabase';
+
+function getDomain(url?: string): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+function getLinkedInSlug(url?: string): string | null {
+  if (!url) return null;
+  const m = url.match(/linkedin\.com\/company\/([^/?#]+)/);
+  return m ? m[1] : null;
+}
+
+function getLogoUrl(entity: Entity): string | null {
+  const domain = getDomain(entity.website);
+  if (domain) return `https://img.logo.dev/${domain}?token=pk_RN8lKfQVS3iw41E9nWPWoA`;
+  return null;
+}
 
 interface EntityCardProps {
   entity: Entity;
@@ -18,14 +40,22 @@ const LOGO_BG: Record<string, string> = {
 };
 
 export function EntityLogo({ entity, size = 'md' }: { entity: Entity; size?: 'sm' | 'md' | 'lg' }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const sizeClasses = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-14 h-14 text-base' };
   const cls = sizeClasses[size];
   const bg = LOGO_BG[entity.type] ?? 'bg-[var(--primary-light)] text-[var(--primary)]';
 
-  if (entity.logo_url) {
+  const imgSrc = entity.logo_url ?? getLogoUrl(entity);
+
+  if (imgSrc && !imgFailed) {
     return (
       <div className={cn('shrink-0 rounded-[var(--radius)] overflow-hidden border border-[var(--border)] bg-white', cls)}>
-        <img src={entity.logo_url} alt={entity.name} className="w-full h-full object-contain p-0.5" />
+        <img
+          src={imgSrc}
+          alt={entity.name}
+          className="w-full h-full object-contain p-0.5"
+          onError={() => setImgFailed(true)}
+        />
       </div>
     );
   }

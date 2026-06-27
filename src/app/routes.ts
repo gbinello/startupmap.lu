@@ -49,6 +49,18 @@ export const router = createBrowserRouter([
         path: 'claim/:entityId',
         lazy: async () => ({ Component: (await import('./pages/ClaimPage')).default }),
       },
+      {
+        path: 'verify-claim',
+        lazy: async () => ({ Component: (await import('./pages/VerifyClaimPage')).default }),
+      },
+      {
+        path: 'about',
+        lazy: async () => ({ Component: (await import('./pages/AboutPage')).default }),
+      },
+      {
+        path: 'sector/:slug',
+        lazy: async () => ({ Component: (await import('./pages/SectorPage')).default }),
+      },
       { path: '*', Component: NotFoundPage },
     ],
   },

@@ -152,8 +152,14 @@ export default function FundingPage() {
   return (
     <>
       <Helmet>
-        <title>Funding — startupmap.lu</title>
-        <meta name="description" content="Luxembourg startup funding tracker — rounds, investors and sector breakdown." />
+        <title>Luxembourg Startup Funding & Investment Data | startupmap.lu</title>
+        <meta name="description" content="Track startup funding rounds, investors and deals in Luxembourg. Annual funding data, round sizes, sector breakdown and top investors." />
+        <meta property="og:title" content="Luxembourg Startup Funding & Investment Data | startupmap.lu" />
+        <meta property="og:description" content="Track startup funding rounds, investors and deals in Luxembourg. Annual data, round sizes and sector breakdown." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://startupmap.lu/funding" />
+        <meta property="og:site_name" content="startupmap.lu" />
+        <meta name="twitter:card" content="summary" />
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

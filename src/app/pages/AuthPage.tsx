@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router';
 import { Helmet } from 'react-helmet-async';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, FlaskConical } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { supabase } from '@/lib/supabase';
+
+const isDemo = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder');
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -117,6 +119,26 @@ export default function AuthPage() {
             <Button variant="outline" className="w-full" onClick={handleMagicLink} disabled={loading}>
               Send magic link
             </Button>
+
+            {isDemo && (
+              <>
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--border)]" /></div>
+                  <div className="relative flex justify-center"><span className="px-2 bg-white text-xs text-[var(--foreground-muted)]">demo mode</span></div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 border-dashed text-[var(--foreground-secondary)]"
+                  onClick={async () => {
+                    await (supabase.auth as any).signInAsDemo();
+                    navigate('/profile');
+                  }}
+                >
+                  <FlaskConical size={14} />
+                  Continue as demo user
+                </Button>
+              </>
+            )}
           </div>
 
           <p className="text-center text-sm text-[var(--foreground-secondary)] mt-5">
